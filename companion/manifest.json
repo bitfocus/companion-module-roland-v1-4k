@@ -1,18 +1,17 @@
 {
 	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"type": "connection",
-	"id": "your-module-name",
-	"name": "your-module-name",
-	"shortname": "module-shortname",
-	"description": "A short one line description of your module",
+	"id": "roland-v1-4k",
+	"name": "roland-v1-4k",
+	"shortname": "V-1-4K",
+	"description": "Roland V-1-4K Streaming Video Switcher",
 	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/bitfocus/companion-module-your-module-name.git",
-	"bugs": "https://github.com/bitfocus/companion-module-your-module-name/issues",
+	"repository": "git+https://github.com/bitfocus/companion-module-roland-v1-4k.git",
+	"bugs": "https://github.com/bitfocus/companion-module-roland-v1-4k/issues",
 	"maintainers": [
 		{
-			"name": "Your name",
-			"email": "Your email"
+			"name": "1e0h"
 		}
 	],
 	"runtime": {
@@ -22,7 +21,7 @@
 		"entrypoint": "../src/main.js"
 	},
 	"legacyIds": [],
-	"manufacturer": "Your company",
-	"products": ["Your product"],
-	"keywords": []
+	"manufacturer": "Roland",
+	"products": ["V-1-4K"],
+	"keywords": ["Vision Mixer", "Video Switcher", "4K", "Streaming"]
 }
