@@ -31,7 +31,7 @@ This module controls the **Roland V-1-4K Streaming Video Switcher** over a LAN (
 - **Transition Type** – MIX / WIPE
 - **Transition Time** – per target (MIX, WIPE, DSK, Output Fade)
 - **Input Assign** – assign HDMI/STILL/BLACK to INPUT channels
-- **Output Assign** – HDMI OUT 3/4 to PGM, PVW, or INPUT 1-8
+- **Output Assign** – HDMI OUT 3/4, USB STREAM to PGM, PVW, or INPUT 1-8
 
 ### PinP
 - **PinP PGM/PVW Toggle/Set** – ON/OFF

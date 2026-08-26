@@ -291,6 +291,46 @@ module.exports = function (self) {
 		],
 	}
 
+	// USB Output Assign
+	let usbAssignChoices = [
+		{ id: 'PGM', label: 'PGM' },
+		{ id: 'PVW', label: 'PVW' },
+		{ id: 'INPUT1', label: 'IN 1' },
+		{ id: 'INPUT2', label: 'IN 2' },
+		{ id: 'INPUT3', label: 'IN 3' },
+		{ id: 'INPUT4', label: 'IN 4' },
+	]
+	for (let i = 0; i < usbAssignChoices.length; i++) {
+		let assign = usbAssignChoices[i]
+		presets[`usb_assign_${assign.id}`] = {
+			type: 'button',
+			category: 'USB Output',
+			name: `USB → ${assign.label}`,
+			style: {
+				text: `USB\\n${assign.label}`,
+				size: 'auto',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			steps: [
+				{
+					down: [{ actionId: 'output_assign', options: { port: 'USB', assign: assign.id } }],
+					up: [],
+				},
+			],
+			feedbacks: [
+				{
+					feedbackId: 'output_assign',
+					options: { port: 'USB', assign: assign.id },
+					style: {
+						bgcolor: combineRgb(0, 128, 255),
+						color: combineRgb(255, 255, 255),
+					},
+				},
+			],
+		}
+	}
+
 	// SPLIT
 	presets['split_toggle'] = {
 		type: 'button',

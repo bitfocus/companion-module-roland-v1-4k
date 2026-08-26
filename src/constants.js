@@ -46,6 +46,7 @@ module.exports = {
 	CHOICES_OUTPUT_PORTS: [
 		{ id: 'HDMI3', label: 'HDMI OUT 3' },
 		{ id: 'HDMI4', label: 'HDMI OUT 4' },
+		{ id: 'USB', label: 'USB STREAM' },
 	],
 
 	CHOICES_OUTPUT_ASSIGN: [
