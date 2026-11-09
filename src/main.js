@@ -64,7 +64,7 @@ class V14KInstance extends InstanceBase {
 		this.updateFeedbacks()
 		this.updateVariableDefinitions()
 		this.updatePresets()
-		this.checkFeedbacks()
+		this.checkAllFeedbacks()
 		this.initConnection()
 	}
 
@@ -236,7 +236,7 @@ class V14KInstance extends InstanceBase {
 				this.parseResponse(prefix, params)
 			}
 
-			this.checkFeedbacks()
+			this.checkAllFeedbacks()
 		} catch (error) {
 			this.log('error', 'Error parsing data: ' + error)
 			this.log('error', 'Data: ' + data)
