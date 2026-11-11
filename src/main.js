@@ -21,10 +21,11 @@ class V14KInstance extends InstanceBase {
 		this.pollQueue = []
 		this.pollTimer = null
 		this.memoryNamesLoaded = false
+		this.secrets = {}
 	}
 
-	async init(config) {
-		this.configUpdated(config)
+	async init(config, isFirstInit, secrets) {
+		await this.configUpdated(config, secrets)
 	}
 
 	async destroy() {
@@ -32,10 +33,7 @@ class V14KInstance extends InstanceBase {
 			if (this.socket !== undefined) {
 				this.socket.destroy()
 			}
-			clearInterval(this.INTERVAL)
-			if (this.pollTimer) {
-				clearTimeout(this.pollTimer)
-			}
+			this.stopPolling()
 			if (this.RECONNECT_INTERVAL !== undefined) {
 				clearTimeout(this.RECONNECT_INTERVAL)
 			}
@@ -45,15 +43,18 @@ class V14KInstance extends InstanceBase {
 		}
 	}
 
-	async configUpdated(config) {
+	async configUpdated(config, secrets) {
 		this.config = config
+		if (secrets !== undefined) {
+			this.secrets = secrets
+		}
 
 		if (this.socket !== undefined) {
 			this.socket.destroy()
 			delete this.socket
 		}
 
-		clearInterval(this.INTERVAL)
+		this.stopPolling()
 
 		if (this.RECONNECT_INTERVAL !== undefined) {
 			clearTimeout(this.RECONNECT_INTERVAL)
@@ -88,7 +89,7 @@ class V14KInstance extends InstanceBase {
 				max: 65535,
 			},
 			{
-				type: 'textinput',
+				type: 'secret-text',
 				id: 'password',
 				label: 'Password',
 				default: '',
@@ -100,6 +101,7 @@ class V14KInstance extends InstanceBase {
 				label: 'Enable Polling',
 				default: true,
 				width: 3,
+				disableAutoExpression: true,
 			},
 			{
 				type: 'number',
@@ -109,6 +111,7 @@ class V14KInstance extends InstanceBase {
 				width: 3,
 				min: 1000,
 				max: 30000,
+				isVisibleExpression: '$(options:polling)',
 			},
 			{
 				type: 'checkbox',
@@ -158,18 +161,26 @@ class V14KInstance extends InstanceBase {
 				if (this.config.verbose) {
 					this.log('warn', 'Error: ' + err)
 				}
-				clearInterval(this.INTERVAL)
+				this.stopPolling()
 				this.handleError(err)
 			})
 
 			this.socket.on('connect', () => {
 				this.log('info', 'Connected')
-				this.updateStatus(InstanceStatus.Ok)
+				this.updateStatus(InstanceStatus.Connecting, 'Waiting for login')
+			})
+
+			this.socket.on('end', () => {
+				this.log('info', 'Connection closed by device')
+				this.stopPolling()
+				this.updateStatus(InstanceStatus.Disconnected)
 			})
 
 			this.socket.on('data', (buffer) => {
 				this.processIncomingData(buffer.toString('utf8'))
 			})
+		} else {
+			this.updateStatus(InstanceStatus.BadConfig, 'IP address not set')
 		}
 	}
 
@@ -179,7 +190,7 @@ class V14KInstance extends InstanceBase {
 		if (this.receiveBuffer.includes('Enter password:')) {
 			this.updateStatus(InstanceStatus.Connecting, 'Authenticating')
 			this.log('info', 'Sending password...')
-			this.socket.send(this.config.password + '\n')
+			this.socket.send((this.secrets.password || '') + '\n')
 			this.receiveBuffer = ''
 			return
 		}
@@ -410,6 +421,7 @@ class V14KInstance extends InstanceBase {
 				let tallyIndex = parseInt(p3, 16)
 				if (tallyIndex >= 0 && tallyIndex < this.TALLYDATA.length) {
 					this.TALLYDATA[tallyIndex].status = parseInt(value, 16)
+					this.updateTallyVariables()
 				}
 			}
 
@@ -436,7 +448,7 @@ class V14KInstance extends InstanceBase {
 				this.DATA.lastMemoryNumber = memNum
 				let memName = this.DATA[`memoryName_${memNum}`] || ''
 				this.setVariableValues({
-					last_memory_number: memNum,
+					last_memory_number: memNum + 1,
 					last_memory_name: memName.trim(),
 				})
 			}
@@ -460,42 +472,37 @@ class V14KInstance extends InstanceBase {
 
 	handleError(err) {
 		try {
-			let error = err.toString()
-			let printedError = false
+			let code = err && err.code
+			let statusMessage
 
-			Object.keys(err).forEach((key) => {
-				if (key === 'code') {
-					if (err[key] === 'ECONNREFUSED') {
-						this.log('error', 'Connection refused. Check the IP address.')
-						this.updateStatus(InstanceStatus.ConnectionFailure, 'Connection Refused')
-						printedError = true
-					} else if (err[key] === 'ETIMEDOUT') {
-						this.log('error', 'Connection timed out. Check the IP address.')
-						this.updateStatus(InstanceStatus.ConnectionFailure, 'Connection Timed Out')
-						printedError = true
-					} else if (err[key] === 'ECONNRESET') {
-						this.log('error', 'Connection reset.')
-						this.updateStatus(InstanceStatus.ConnectionFailure, 'Connection Reset')
-						printedError = true
-					}
-
-					if (this.socket !== undefined) {
-						this.socket.destroy()
-					}
-					this.startReconnectInterval()
-				}
-			})
-
-			if (!printedError) {
-				this.log('error', `Error: ${error}`)
+			if (code === 'ECONNREFUSED') {
+				this.log('error', 'Connection refused. Check the IP address.')
+				statusMessage = 'Connection Refused'
+			} else if (code === 'ETIMEDOUT') {
+				this.log('error', 'Connection timed out. Check the IP address.')
+				statusMessage = 'Connection Timed Out'
+			} else if (code === 'ECONNRESET') {
+				this.log('error', 'Connection reset.')
+				statusMessage = 'Connection Reset'
+			} else {
+				this.log('error', `Error: ${err ? err.toString() : 'Unknown error'}`)
+				statusMessage = 'Connection Error'
 			}
+
+			if (this.socket !== undefined) {
+				this.socket.destroy()
+			}
+			this.startReconnectInterval(statusMessage)
 		} catch (error) {
 			this.log('error', 'Error handling error: ' + error)
 		}
 	}
 
-	startReconnectInterval() {
-		this.updateStatus(InstanceStatus.ConnectionFailure, 'Reconnecting')
+	startReconnectInterval(statusMessage) {
+		this.updateStatus(
+			InstanceStatus.ConnectionFailure,
+			statusMessage ? `${statusMessage}, retrying in 30s` : 'Reconnecting',
+		)
 
 		if (this.RECONNECT_INTERVAL !== undefined) {
 			clearTimeout(this.RECONNECT_INTERVAL)
@@ -506,9 +513,20 @@ class V14KInstance extends InstanceBase {
 		this.RECONNECT_INTERVAL = setTimeout(() => this.initConnection(), 30000)
 	}
 
-	startInterval() {
+	stopPolling() {
+		if (this.INTERVAL) {
+			clearInterval(this.INTERVAL)
+			this.INTERVAL = null
+		}
+		if (this.pollTimer) {
+			clearTimeout(this.pollTimer)
+			this.pollTimer = null
+		}
 		this.pollQueue = []
-		this.pollTimer = null
+	}
+
+	startInterval() {
+		this.stopPolling()
 		this.memoryNamesLoaded = false
 
 		if (this.config.polling) {
@@ -520,6 +538,10 @@ class V14KInstance extends InstanceBase {
 	}
 
 	getData() {
+		if (this.pollQueue.length > 0) {
+			return
+		}
+
 		let commands = [
 			'QPGM;',
 			'QPST;',

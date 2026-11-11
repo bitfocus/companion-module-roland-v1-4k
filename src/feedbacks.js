@@ -34,7 +34,10 @@ module.exports = function (self) {
 		callback: (feedback) => {
 			let tally = self.TALLYDATA.find((t) => t.id == feedback.options.source)
 			if (tally) {
-				return tally.status == feedback.options.state
+				// status is a bit field: 1 = PGM, 2 = PST, 3 = PGM+PST.
+				// Match PGM on 1 and 3, PST on 2 and 3, and PGM & PST on 3 only.
+				let state = Number(feedback.options.state)
+				return (Number(tally.status) & state) === state
 			}
 			return false
 		},

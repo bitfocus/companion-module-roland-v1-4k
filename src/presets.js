@@ -240,7 +240,7 @@ module.exports = function (self) {
 		type: 'simple',
 		name: 'ROI Mode',
 		style: { text: 'ROI\\nMode', size: 'auto', color: combineRgb(255, 255, 255), bgcolor: combineRgb(0, 0, 0) },
-		steps: [{ down: [{ actionId: 'roi_mode', options: { state: 'ON' } }], up: [] }],
+		steps: [{ down: [{ actionId: 'roi_mode_toggle', options: {} }], up: [] }],
 		feedbacks: [
 			{
 				feedbackId: 'roi_mode_on',

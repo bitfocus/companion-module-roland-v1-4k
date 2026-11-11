@@ -509,6 +509,15 @@ module.exports = function (self) {
 		},
 	}
 
+	actions['roi_mode_toggle'] = {
+		name: 'ROI Mode Toggle',
+		options: [],
+		callback: async () => {
+			let next = self.DATA.roiMode === 'ON' ? 'OFF' : 'ON'
+			self.sendSimpleCommand(`ROISW:${next};`)
+		},
+	}
+
 	actions['roi_zoom'] = {
 		name: 'ROI Zoom',
 		options: [
@@ -1115,9 +1124,8 @@ module.exports = function (self) {
 		callback: async (event) => {
 			self.sendCommand('0A0500', event.options.source)
 			self.sendCommand('0A0501', event.options.target)
-			setTimeout(() => {
-				self.sendCommand('0A0502', '01')
-			}, 100)
+			await new Promise((resolve) => setTimeout(resolve, 100))
+			self.sendCommand('0A0502', '01')
 		},
 	}
 
@@ -1139,9 +1147,8 @@ module.exports = function (self) {
 		],
 		callback: async (event) => {
 			self.sendCommand('0A0505', event.options.target)
-			setTimeout(() => {
-				self.sendCommand('0A0503', '01')
-			}, 100)
+			await new Promise((resolve) => setTimeout(resolve, 100))
+			self.sendCommand('0A0503', '01')
 		},
 	}
 
@@ -1210,6 +1217,7 @@ module.exports = function (self) {
 				label: 'Command (e.g. PGM:HDMI1;)',
 				id: 'command',
 				default: '',
+				useVariables: true,
 			},
 		],
 		callback: async (event) => {
