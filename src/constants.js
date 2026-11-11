@@ -168,4 +168,52 @@ module.exports = {
 		{ id: 'OFF', label: 'OFF' },
 		{ id: 'COLORBAR', label: 'Color Bar' },
 	],
+
+	// Maps readable option ids to the device's raw sysex codes for still image capture/delete.
+	STILL_SOURCE_CODES: {
+		HDMI1: '00',
+		HDMI2: '01',
+		HDMI3: '02',
+		HDMI4: '03',
+		HDMI5: '04',
+	},
+
+	STILL_TARGET_CODES: {
+		STILL1: '00',
+		STILL2: '01',
+	},
+
+	STILL_DELETE_CODES: {
+		ALL: '7F',
+		STILL1: '00',
+		STILL2: '01',
+	},
+
+	// Maps readable tally state ids to the device's status bit field (1 = PGM, 2 = PST, 3 = PGM+PST).
+	TALLY_STATE_BITS: {
+		PGM: 1,
+		PST: 2,
+		PGM_PST: 3,
+	},
+
+	// Maps a reply prefix to the feedback types it can affect, so only those are re-checked per line.
+	PREFIX_FEEDBACKS: {
+		PGM: ['pgm_source'],
+		PST: ['pst_source'],
+		TLY: ['tally'],
+		ATG: ['auto_transition'],
+		TRS: ['transition_type'],
+		FTB: ['output_fade'],
+		PPS: ['pinp_pgm_on'],
+		PPW: ['pinp_pvw_on'],
+		DSK: ['dsk_pgm_on'],
+		DVW: ['dsk_pvw_on'],
+		SPS: ['split_on'],
+		ROISW: ['roi_mode_on'],
+		VOS: ['output_assign'],
+		MEM: ['memory_loaded'],
+		ASW: ['auto_switching_on'],
+		ATM: ['auto_mixing_on'],
+		DTH: ['tally'],
+	},
 }
