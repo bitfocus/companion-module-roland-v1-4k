@@ -35,22 +35,6 @@ module.exports = function (self) {
 		},
 	}
 
-	actions['select_pvw'] = {
-		name: 'PVW Source Select',
-		options: [
-			{
-				type: 'dropdown',
-				label: 'Source',
-				id: 'source',
-				default: 'INPUT1',
-				choices: self.CHOICES_INPUTS,
-			},
-		],
-		callback: async (event) => {
-			self.sendSimpleCommand(`PST:${event.options.source};`)
-		},
-	}
-
 	actions['auto_take'] = {
 		name: 'AUTO Transition',
 		options: [],
@@ -1101,29 +1085,35 @@ module.exports = function (self) {
 				type: 'dropdown',
 				label: 'Capture Source',
 				id: 'source',
-				default: '00',
+				default: 'HDMI1',
 				choices: [
-					{ id: '00', label: 'HDMI IN 1' },
-					{ id: '01', label: 'HDMI IN 2' },
-					{ id: '02', label: 'HDMI IN 3' },
-					{ id: '03', label: 'HDMI IN 4' },
-					{ id: '04', label: 'HDMI IN 5' },
+					{ id: 'HDMI1', label: 'HDMI IN 1' },
+					{ id: 'HDMI2', label: 'HDMI IN 2' },
+					{ id: 'HDMI3', label: 'HDMI IN 3' },
+					{ id: 'HDMI4', label: 'HDMI IN 4' },
+					{ id: 'HDMI5', label: 'HDMI IN 5' },
 				],
 			},
 			{
 				type: 'dropdown',
 				label: 'Target Storage',
 				id: 'target',
-				default: '00',
+				default: 'STILL1',
 				choices: [
-					{ id: '00', label: 'STILL 1' },
-					{ id: '01', label: 'STILL 2' },
+					{ id: 'STILL1', label: 'STILL 1' },
+					{ id: 'STILL2', label: 'STILL 2' },
 				],
 			},
 		],
 		callback: async (event) => {
-			self.sendCommand('0A0500', event.options.source)
-			self.sendCommand('0A0501', event.options.target)
+			let source = self.STILL_SOURCE_CODES[event.options.source]
+			let target = self.STILL_TARGET_CODES[event.options.target]
+			if (source === undefined || target === undefined) {
+				self.log('warn', `Capture Still Image: invalid option (${event.options.source}, ${event.options.target})`)
+				return
+			}
+			self.sendCommand('0A0500', source)
+			self.sendCommand('0A0501', target)
 			await new Promise((resolve) => setTimeout(resolve, 100))
 			self.sendCommand('0A0502', '01')
 		},
@@ -1137,16 +1127,21 @@ module.exports = function (self) {
 				type: 'dropdown',
 				label: 'Target',
 				id: 'target',
-				default: '00',
+				default: 'STILL1',
 				choices: [
-					{ id: '7F', label: 'ALL' },
-					{ id: '00', label: 'STILL 1' },
-					{ id: '01', label: 'STILL 2' },
+					{ id: 'ALL', label: 'ALL' },
+					{ id: 'STILL1', label: 'STILL 1' },
+					{ id: 'STILL2', label: 'STILL 2' },
 				],
 			},
 		],
 		callback: async (event) => {
-			self.sendCommand('0A0505', event.options.target)
+			let target = self.STILL_DELETE_CODES[event.options.target]
+			if (target === undefined) {
+				self.log('warn', `Delete Still Image: invalid option (${event.options.target})`)
+				return
+			}
+			self.sendCommand('0A0505', target)
 			await new Promise((resolve) => setTimeout(resolve, 100))
 			self.sendCommand('0A0503', '01')
 		},

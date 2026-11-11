@@ -16,27 +16,28 @@ module.exports = function (self) {
 				type: 'dropdown',
 				label: 'Source',
 				id: 'source',
-				default: 0,
-				choices: self.TALLYDATA.map((t) => ({ id: t.id, label: t.label })),
+				default: 'HDMI1',
+				choices: self.TALLYDATA.map((t) => ({ id: t.label, label: t.label })),
 			},
 			{
 				type: 'dropdown',
 				label: 'State',
 				id: 'state',
-				default: 1,
+				default: 'PGM',
 				choices: [
-					{ id: 1, label: 'PGM' },
-					{ id: 2, label: 'PST' },
-					{ id: 3, label: 'PGM & PST' },
+					{ id: 'PGM', label: 'PGM' },
+					{ id: 'PST', label: 'PST' },
+					{ id: 'PGM_PST', label: 'PGM & PST' },
 				],
 			},
 		],
 		callback: (feedback) => {
-			let tally = self.TALLYDATA.find((t) => t.id == feedback.options.source)
+			let tally = self.TALLYDATA.find((t) => t.label === feedback.options.source)
 			if (tally) {
 				// status is a bit field: 1 = PGM, 2 = PST, 3 = PGM+PST.
 				// Match PGM on 1 and 3, PST on 2 and 3, and PGM & PST on 3 only.
-				let state = Number(feedback.options.state)
+				let state = self.TALLY_STATE_BITS[feedback.options.state]
+				if (state === undefined) return false
 				return (Number(tally.status) & state) === state
 			}
 			return false

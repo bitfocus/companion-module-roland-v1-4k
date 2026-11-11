@@ -202,6 +202,10 @@ class V14KInstance extends InstanceBase {
 			this.sendSimpleCommand('VER;')
 			this.startInterval()
 			this.subscribeToTally()
+			// Fetch an initial status snapshot right away so buttons reflect the
+			// current state without waiting a full polling period (and even when
+			// continuous polling is disabled).
+			this.getData()
 			return
 		}
 
@@ -232,6 +236,7 @@ class V14KInstance extends InstanceBase {
 
 		try {
 			let segments = data.split(';')
+			let affectedFeedbacks = new Set()
 
 			for (let s = 0; s < segments.length; s++) {
 				let segment = segments[s].trim()
@@ -245,9 +250,18 @@ class V14KInstance extends InstanceBase {
 				let params = paramStr.split(',')
 
 				this.parseResponse(prefix, params)
+
+				let feedbackIds = this.PREFIX_FEEDBACKS[prefix]
+				if (feedbackIds) {
+					for (let f = 0; f < feedbackIds.length; f++) {
+						affectedFeedbacks.add(feedbackIds[f])
+					}
+				}
 			}
 
-			this.checkAllFeedbacks()
+			if (affectedFeedbacks.size > 0) {
+				this.checkFeedbacks(...affectedFeedbacks)
+			}
 		} catch (error) {
 			this.log('error', 'Error parsing data: ' + error)
 			this.log('error', 'Data: ' + data)
