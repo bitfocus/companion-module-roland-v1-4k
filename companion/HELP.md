@@ -52,7 +52,7 @@ This module controls the **Roland V-1-4K Streaming Video Switcher** over a LAN (
 
 ### ROI (V-1-4K Specific)
 
-- **ROI Mode** – ON/OFF
+- **ROI Mode** – ON/OFF, or Toggle
 - **ROI Zoom** – 100.0% to 400.0% (ROI 1-4)
 - **ROI Position** – H/V (ROI 1-4)
 

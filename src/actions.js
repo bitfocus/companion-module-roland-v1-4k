@@ -477,6 +477,17 @@ module.exports = function (self) {
 
 	// ── ROI (V-1-4K specific) ──
 
+	// The switcher only acknowledges ROISW, it does not report the new state.
+	// Track the state here once the command is sent, so the toggle and the
+	// feedback stay correct between polls (and when polling is disabled).
+	const setRoiMode = (state) => {
+		if (!self.sendSimpleCommand(`ROISW:${state};`)) return
+
+		self.DATA.roiMode = state
+		self.setVariableValues({ roi_mode: state })
+		self.checkFeedbacks('roi_mode_on')
+	}
+
 	actions['roi_mode'] = {
 		name: 'ROI Mode',
 		options: [
@@ -489,7 +500,7 @@ module.exports = function (self) {
 			},
 		],
 		callback: async (event) => {
-			self.sendSimpleCommand(`ROISW:${event.options.state};`)
+			setRoiMode(event.options.state)
 		},
 	}
 
@@ -497,8 +508,7 @@ module.exports = function (self) {
 		name: 'ROI Mode Toggle',
 		options: [],
 		callback: async () => {
-			let next = self.DATA.roiMode === 'ON' ? 'OFF' : 'ON'
-			self.sendSimpleCommand(`ROISW:${next};`)
+			setRoiMode(self.DATA.roiMode === 'ON' ? 'OFF' : 'ON')
 		},
 	}
 

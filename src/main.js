@@ -190,7 +190,7 @@ class V14KInstance extends InstanceBase {
 		if (this.receiveBuffer.includes('Enter password:')) {
 			this.updateStatus(InstanceStatus.Connecting, 'Authenticating')
 			this.log('info', 'Sending password...')
-			this.socket.send((this.secrets.password || '') + '\n')
+			this.socket.send(((this.secrets && this.secrets.password) || '') + '\n')
 			this.receiveBuffer = ''
 			return
 		}
@@ -625,11 +625,13 @@ class V14KInstance extends InstanceBase {
 				this.log('debug', 'Sending: ' + command)
 			}
 			this.socket.send(command + '\n')
-		} else {
-			if (this.config.verbose) {
-				this.log('warn', 'Socket not connected, cannot send.')
-			}
+			return true
 		}
+
+		if (this.config.verbose) {
+			this.log('warn', 'Socket not connected, cannot send.')
+		}
+		return false
 	}
 
 	sendRawCommand(command) {
