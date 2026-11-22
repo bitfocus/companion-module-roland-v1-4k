@@ -288,5 +288,46 @@ module.exports = function (self) {
 	}
 	structure.push({ id: 'memory', name: 'Memory', definitions: memIds })
 
+	// Output Assign (HDMI OUT 3 / HDMI OUT 4)
+	for (let p = 0; p < self.CHOICES_OUTPUT_PORTS.length; p++) {
+		let port = self.CHOICES_OUTPUT_PORTS[p]
+		let shortLabel = port.label.replace('HDMI ', '')
+		let outputIds = []
+
+		for (let a = 0; a < self.CHOICES_OUTPUT_ASSIGN.length; a++) {
+			let assign = self.CHOICES_OUTPUT_ASSIGN[a]
+			let id = `output_${port.id}_${assign.id}`
+			outputIds.push(id)
+			presets[id] = {
+				type: 'simple',
+				name: `${port.label} → ${assign.label}`,
+				style: {
+					text: `${shortLabel}\\n${assign.label}`,
+					size: 'auto',
+					color: combineRgb(255, 255, 255),
+					bgcolor: combineRgb(0, 0, 0),
+				},
+				steps: [
+					{
+						down: [{ actionId: 'output_assign', options: { port: port.id, assign: assign.id } }],
+						up: [],
+					},
+				],
+				feedbacks: [
+					{
+						feedbackId: 'output_assign',
+						options: { port: port.id, assign: assign.id },
+						style: {
+							bgcolor: combineRgb(0, 128, 255),
+							color: combineRgb(255, 255, 255),
+						},
+					},
+				],
+			}
+		}
+
+		structure.push({ id: `output_${port.id}`, name: `Output Assign: ${port.label}`, definitions: outputIds })
+	}
+
 	self.setPresetDefinitions(structure, presets)
 }
