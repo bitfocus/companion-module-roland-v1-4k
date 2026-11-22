@@ -43,10 +43,10 @@ module.exports = {
 		{ id: 'N/A', label: 'N/A' },
 	],
 
+	// VOS/QVOS on the V-1-4K only accept HDMI3 and HDMI4 as the output port.
 	CHOICES_OUTPUT_PORTS: [
 		{ id: 'HDMI3', label: 'HDMI OUT 3' },
 		{ id: 'HDMI4', label: 'HDMI OUT 4' },
-		{ id: 'USB', label: 'USB STREAM' },
 	],
 
 	CHOICES_OUTPUT_ASSIGN: [

@@ -384,7 +384,6 @@ class V14KInstance extends InstanceBase {
 					this.DATA[`outputAssign_${port}`] = assign
 					if (port === 'HDMI3') this.setVariableValues({ hdmi3_assign: assign })
 					if (port === 'HDMI4') this.setVariableValues({ hdmi4_assign: assign })
-					if (port === 'USB') this.setVariableValues({ usb_assign: assign })
 				}
 				break
 			case 'MEM':
@@ -573,7 +572,6 @@ class V14KInstance extends InstanceBase {
 			'QROISW;',
 			'QVOS:HDMI3;',
 			'QVOS:HDMI4;',
-			'QVOS:USB;',
 			'QMEM;',
 			'QASW;',
 			'QATM;',

@@ -288,48 +288,5 @@ module.exports = function (self) {
 	}
 	structure.push({ id: 'memory', name: 'Memory', definitions: memIds })
 
-	// USB Output Assign
-	let usbIds = []
-	let usbAssignChoices = [
-		{ id: 'PGM', label: 'PGM' },
-		{ id: 'PVW', label: 'PVW' },
-		{ id: 'INPUT1', label: 'IN 1' },
-		{ id: 'INPUT2', label: 'IN 2' },
-		{ id: 'INPUT3', label: 'IN 3' },
-		{ id: 'INPUT4', label: 'IN 4' },
-	]
-	for (let i = 0; i < usbAssignChoices.length; i++) {
-		let assign = usbAssignChoices[i]
-		let id = `usb_assign_${assign.id}`
-		usbIds.push(id)
-		presets[id] = {
-			type: 'simple',
-			name: `USB → ${assign.label}`,
-			style: {
-				text: `USB\\n${assign.label}`,
-				size: 'auto',
-				color: combineRgb(255, 255, 255),
-				bgcolor: combineRgb(0, 0, 0),
-			},
-			steps: [
-				{
-					down: [{ actionId: 'output_assign', options: { port: 'USB', assign: assign.id } }],
-					up: [],
-				},
-			],
-			feedbacks: [
-				{
-					feedbackId: 'output_assign',
-					options: { port: 'USB', assign: assign.id },
-					style: {
-						bgcolor: combineRgb(0, 128, 255),
-						color: combineRgb(255, 255, 255),
-					},
-				},
-			],
-		}
-	}
-	structure.push({ id: 'usb_output', name: 'USB Output', definitions: usbIds })
-
 	self.setPresetDefinitions(structure, presets)
 }
