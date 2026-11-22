@@ -5,6 +5,17 @@ const UpdateFeedbacks = require('./feedbacks')
 const UpdateVariableDefinitions = require('./variables')
 const UpdatePresets = require('./presets')
 const Constants = require('./constants')
+const { PendingCommands } = require('./pending')
+
+// How often the password is sent before the login is reported as failed. After
+// earlier failed logins the V-1-4K can ask again once even for the right password.
+const MAX_PASSWORD_ATTEMPTS = 3
+
+const DEVICE_ERRORS = {
+	0: 'syntax error',
+	4: 'invalid, controlled by another setting',
+	5: 'argument out of range',
+}
 
 class V14KInstance extends InstanceBase {
 	constructor(internal) {
@@ -22,6 +33,10 @@ class V14KInstance extends InstanceBase {
 		this.pollTimer = null
 		this.memoryNamesLoaded = false
 		this.secrets = {}
+		this.pending = new PendingCommands()
+		this.reportedErrors = new Set()
+		this.passwordAttempts = 0
+		this.authFailed = false
 	}
 
 	async init(config, isFirstInit, secrets) {
@@ -155,7 +170,7 @@ class V14KInstance extends InstanceBase {
 			this.log('info', `Opening connection to ${this.config.host}:${this.config.port}`)
 
 			this.socket = new TCPHelper(this.config.host, this.config.port)
-			this.receiveBuffer = ''
+			this.resetSession()
 
 			this.socket.on('error', (err) => {
 				if (this.config.verbose) {
@@ -167,6 +182,7 @@ class V14KInstance extends InstanceBase {
 
 			this.socket.on('connect', () => {
 				this.log('info', 'Connected')
+				this.resetSession()
 				this.updateStatus(InstanceStatus.Connecting, 'Waiting for login')
 			})
 
@@ -184,21 +200,58 @@ class V14KInstance extends InstanceBase {
 		}
 	}
 
+	// A new login session starts: forget everything that belonged to the previous one.
+	resetSession() {
+		this.receiveBuffer = ''
+		this.pending.clear()
+		this.passwordAttempts = 0
+		this.authFailed = false
+	}
+
+	// The V-1-4K asks for the password again whenever it did not accept the last one.
+	handlePasswordPrompt() {
+		if (this.authFailed) return
+
+		let password = (this.secrets && this.secrets.password) || ''
+
+		if (this.passwordAttempts >= MAX_PASSWORD_ATTEMPTS) {
+			// Stop here: sending the same password again cannot succeed, and every
+			// failed attempt makes the switcher wait longer before the next prompt.
+			this.authFailed = true
+			let reason = password === '' ? 'Password not set' : 'Password rejected'
+			this.log(
+				'error',
+				`${reason}: the V-1-4K asked for the password again after ${this.passwordAttempts} attempts. ` +
+					'Check the Password in the connection settings against NETWORK PASSWORD on the V-1-4K.',
+			)
+			this.updateStatus(InstanceStatus.AuthenticationFailure, reason)
+			return
+		}
+
+		this.passwordAttempts++
+		this.updateStatus(InstanceStatus.Connecting, 'Authenticating')
+		if (this.passwordAttempts === 1) {
+			this.log('info', 'Sending password...')
+		} else {
+			this.log('warn', `Password not accepted, sending it again (attempt ${this.passwordAttempts})...`)
+		}
+		this.socket.send(password + '\n')
+	}
+
 	processIncomingData(data) {
 		this.receiveBuffer += data
 
 		if (this.receiveBuffer.includes('Enter password:')) {
-			this.updateStatus(InstanceStatus.Connecting, 'Authenticating')
-			this.log('info', 'Sending password...')
-			this.socket.send(((this.secrets && this.secrets.password) || '') + '\n')
 			this.receiveBuffer = ''
+			this.handlePasswordPrompt()
 			return
 		}
 
 		if (this.receiveBuffer.includes('Welcome to V-1-4K.')) {
 			this.updateStatus(InstanceStatus.Ok)
 			this.log('info', 'Authenticated.')
-			this.receiveBuffer = ''
+			this.resetSession()
+			this.reportedErrors.clear()
 			this.sendSimpleCommand('VER;')
 			this.startInterval()
 			this.subscribeToTally()
@@ -227,19 +280,21 @@ class V14KInstance extends InstanceBase {
 
 		data = data.replace(/\x02/g, '')
 
-		if (data.trim() === 'ERR:0;' || data.trim() === 'ERR:4;' || data.trim() === 'ERR:5;') {
-			if (this.config.verbose) {
-				this.log('warn', 'Device returned error: ' + data.trim())
-			}
+		let errorReply = /^ERR:(\d+);?$/.exec(data.trim())
+		if (errorReply) {
+			this.reportDeviceError(errorReply[1])
 			return
 		}
 
 		try {
 			let segments = data.split(';')
 			let affectedFeedbacks = new Set()
+			let hasValue = false
+			let hasAck = false
 
 			for (let s = 0; s < segments.length; s++) {
 				let segment = segments[s].trim()
+				if (segment === 'ACK') hasAck = true
 				if (segment === '' || segment === 'ACK') continue
 
 				let colonIndex = segment.indexOf(':')
@@ -249,6 +304,8 @@ class V14KInstance extends InstanceBase {
 				let paramStr = segment.substring(colonIndex + 1).trim()
 				let params = paramStr.split(',')
 
+				hasValue = true
+				this.pending.value(prefix, params)
 				this.parseResponse(prefix, params)
 
 				let feedbackIds = this.PREFIX_FEEDBACKS[prefix]
@@ -259,6 +316,11 @@ class V14KInstance extends InstanceBase {
 				}
 			}
 
+			// A reply without a value is the plain acknowledgement of a set command.
+			if (hasAck && !hasValue) {
+				this.pending.ack()
+			}
+
 			if (affectedFeedbacks.size > 0) {
 				this.checkFeedbacks(...affectedFeedbacks)
 			}
@@ -266,6 +328,26 @@ class V14KInstance extends InstanceBase {
 			this.log('error', 'Error parsing data: ' + error)
 			this.log('error', 'Data: ' + data)
 		}
+	}
+
+	// The switcher rejected a command. Name the command, and without verbose
+	// logging report each distinct rejection only once per login, so that a
+	// rejected poll query cannot flood the log.
+	reportDeviceError(code) {
+		let command = this.pending.error()
+		let meaning = DEVICE_ERRORS[code] ? ` (${DEVICE_ERRORS[code]})` : ''
+		let source = command ? `in reply to "${command}"` : 'for an unknown command'
+		let message = `Device returned error ERR:${code}${meaning} ${source}`
+
+		if (this.config.verbose) {
+			this.log('warn', message)
+			return
+		}
+
+		let key = `${code}|${command}`
+		if (this.reportedErrors.has(key)) return
+		this.reportedErrors.add(key)
+		this.log('warn', `${message}. Further occurrences are only logged with verbose logging enabled.`)
 	}
 
 	parseResponse(prefix, params) {
@@ -623,6 +705,7 @@ class V14KInstance extends InstanceBase {
 				this.log('debug', 'Sending: ' + command)
 			}
 			this.socket.send(command + '\n')
+			this.pending.sent(command)
 			return true
 		}
 
@@ -642,6 +725,7 @@ class V14KInstance extends InstanceBase {
 				this.log('debug', 'Sending raw: ' + command)
 			}
 			this.socket.send(command + '\n')
+			this.pending.sent(command)
 		}
 	}
 
