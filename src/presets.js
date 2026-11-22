@@ -74,41 +74,6 @@ module.exports = function (self) {
 	}
 	structure.push({ id: 'pst_select', name: 'PST Select', definitions: pstIds })
 
-	// PVW source buttons
-	let pvwIds = []
-	for (let i = 0; i < self.CHOICES_INPUTS.length; i++) {
-		let input = self.CHOICES_INPUTS[i]
-		let id = `pvw_${input.id}`
-		pvwIds.push(id)
-		presets[id] = {
-			type: 'simple',
-			name: `PVW ${input.label}`,
-			style: {
-				text: `PVW\\n${input.label}`,
-				size: 'auto',
-				color: combineRgb(255, 255, 255),
-				bgcolor: combineRgb(0, 0, 0),
-			},
-			steps: [
-				{
-					down: [{ actionId: 'select_pvw', options: { source: input.id } }],
-					up: [],
-				},
-			],
-			feedbacks: [
-				{
-					feedbackId: 'pst_source',
-					options: { source: input.id },
-					style: {
-						bgcolor: combineRgb(0, 255, 0),
-						color: combineRgb(0, 0, 0),
-					},
-				},
-			],
-		}
-	}
-	structure.push({ id: 'pvw_select', name: 'PVW Select', definitions: pvwIds })
-
 	// Transition
 	let transIds = []
 
@@ -240,7 +205,7 @@ module.exports = function (self) {
 		type: 'simple',
 		name: 'ROI Mode',
 		style: { text: 'ROI\\nMode', size: 'auto', color: combineRgb(255, 255, 255), bgcolor: combineRgb(0, 0, 0) },
-		steps: [{ down: [{ actionId: 'roi_mode', options: { state: 'ON' } }], up: [] }],
+		steps: [{ down: [{ actionId: 'roi_mode_toggle', options: {} }], up: [] }],
 		feedbacks: [
 			{
 				feedbackId: 'roi_mode_on',
@@ -256,15 +221,15 @@ module.exports = function (self) {
 	// Still Capture
 	let captureIds = []
 	let captureTargets = [
-		{ id: '00', label: 'STILL 1' },
-		{ id: '01', label: 'STILL 2' },
+		{ id: 'STILL1', label: 'STILL 1' },
+		{ id: 'STILL2', label: 'STILL 2' },
 	]
 	let captureSources = [
-		{ id: '00', label: 'HDMI 1' },
-		{ id: '01', label: 'HDMI 2' },
-		{ id: '02', label: 'HDMI 3' },
-		{ id: '03', label: 'HDMI 4' },
-		{ id: '04', label: 'HDMI 5' },
+		{ id: 'HDMI1', label: 'HDMI 1' },
+		{ id: 'HDMI2', label: 'HDMI 2' },
+		{ id: 'HDMI3', label: 'HDMI 3' },
+		{ id: 'HDMI4', label: 'HDMI 4' },
+		{ id: 'HDMI5', label: 'HDMI 5' },
 	]
 	for (let t = 0; t < captureTargets.length; t++) {
 		for (let s = 0; s < captureSources.length; s++) {
@@ -322,49 +287,6 @@ module.exports = function (self) {
 		}
 	}
 	structure.push({ id: 'memory', name: 'Memory', definitions: memIds })
-
-	// USB Output Assign
-	let usbIds = []
-	let usbAssignChoices = [
-		{ id: 'PGM', label: 'PGM' },
-		{ id: 'PVW', label: 'PVW' },
-		{ id: 'INPUT1', label: 'IN 1' },
-		{ id: 'INPUT2', label: 'IN 2' },
-		{ id: 'INPUT3', label: 'IN 3' },
-		{ id: 'INPUT4', label: 'IN 4' },
-	]
-	for (let i = 0; i < usbAssignChoices.length; i++) {
-		let assign = usbAssignChoices[i]
-		let id = `usb_assign_${assign.id}`
-		usbIds.push(id)
-		presets[id] = {
-			type: 'simple',
-			name: `USB → ${assign.label}`,
-			style: {
-				text: `USB\\n${assign.label}`,
-				size: 'auto',
-				color: combineRgb(255, 255, 255),
-				bgcolor: combineRgb(0, 0, 0),
-			},
-			steps: [
-				{
-					down: [{ actionId: 'output_assign', options: { port: 'USB', assign: assign.id } }],
-					up: [],
-				},
-			],
-			feedbacks: [
-				{
-					feedbackId: 'output_assign',
-					options: { port: 'USB', assign: assign.id },
-					style: {
-						bgcolor: combineRgb(0, 128, 255),
-						color: combineRgb(255, 255, 255),
-					},
-				},
-			],
-		}
-	}
-	structure.push({ id: 'usb_output', name: 'USB Output', definitions: usbIds })
 
 	self.setPresetDefinitions(structure, presets)
 }

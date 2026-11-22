@@ -17,7 +17,6 @@ module.exports = function (self) {
 		roi_mode: { name: 'ROI Mode' },
 		hdmi3_assign: { name: 'HDMI3 Output Assign' },
 		hdmi4_assign: { name: 'HDMI4 Output Assign' },
-		usb_assign: { name: 'USB Output Assign' },
 		current_memory: { name: 'Current Memory' },
 		auto_switching: { name: 'Auto Switching State' },
 		auto_mixing: { name: 'Auto Mixing State' },
